@@ -2,7 +2,6 @@ import requests
 import json
 import os
 import sys
-from twilio.rest import Client
 
 # ── Konfiguration ──────────────────────────────────────────────
 # Siden har ingen JSON-API - den er server-renderet HTML.
@@ -10,12 +9,7 @@ from twilio.rest import Client
 URL = "https://app.waitly.dk/signup/3c179506-00d9-4cf7-8840-a2d9cfa6a8bd"
 LUKKET_TEKST = "Der er desværre lukket for nye tilmeldinger til denne liste"
 STATE_FILE = "state.json"
-
-# Twilio-oplysninger hentes fra GitHub Secrets (miljøvariabler)
-TWILIO_SID = os.environ["TWILIO_ACCOUNT_SID"]
-TWILIO_TOKEN = os.environ["PRIMARY_AUTH_TOKEN"]
-TWILIO_FROM = os.environ["TWILIO_FROM_NUMBER"]
-TWILIO_TO = os.environ["TWILIO_TO_NUMBER"]
+NOTIFICATION_FILE = "notification.txt"
 
 
 def hent_status():
@@ -50,10 +44,15 @@ def gem_status(er_aaben):
         json.dump({"er_aaben": er_aaben}, f)
 
 
-def send_sms(besked):
-    client = Client(TWILIO_SID, TWILIO_TOKEN)
-    client.messages.create(body=besked, from_=TWILIO_FROM, to=TWILIO_TO)
-    print("SMS sendt:", besked)
+def send_notifikation(besked):
+    with open(NOTIFICATION_FILE, "w") as f:
+        f.write(besked)
+    print("Notifikation skrevet:", besked)
+
+
+def ryd_notifikation():
+    with open(NOTIFICATION_FILE, "w") as f:
+        f.write("")
 
 
 def main():
@@ -68,15 +67,17 @@ def main():
     print(f"Forrige status: {forrige} | Nuværende status: {nu_aaben}")
 
     if forrige is None:
-        # Første kørsel — bare gem status, send ikke sms endnu
+        # Første kørsel — bare gem status, send ikke besked endnu
         print("Første kørsel — gemmer status uden at sende besked.")
+        ryd_notifikation()
     elif nu_aaben != forrige:
         if nu_aaben:
-            send_sms(f"🚨 Ventelisten på Gasværksvej 12 er nu ÅBEN! {URL}")
+            send_notifikation(f"🚨 Ventelisten på Gasværksvej 12 er nu ÅBEN! {URL}")
         else:
-            send_sms("Ventelisten er nu lukket igen.")
+            send_notifikation("Ventelisten er nu lukket igen.")
     else:
         print("Ingen ændring.")
+        ryd_notifikation()
 
     gem_status(nu_aaben)
 
