@@ -3,23 +3,17 @@ import json
 import os
 import sys
 
-# ── Konfiguration ──────────────────────────────────────────────
-# Siden har ingen JSON-API - den er server-renderet HTML.
-# Vi tjekker derfor for den danske lukket-tekst direkte i HTML'en.
+# The page has no JSON API — it is server-rendered HTML.
+# We check for the Danish closed-text string directly in the HTML.
 URL = "https://app.waitly.dk/signup/3c179506-00d9-4cf7-8840-a2d9cfa6a8bd"
-LUKKET_TEKST = "Der er desværre lukket for nye tilmeldinger til denne liste"
+CLOSED_TEXT = "Der er desværre lukket for nye tilmeldinger til denne liste"
 STATE_FILE = "state.json"
 NOTIFICATION_FILE = "notification.txt"
 
 
-def hent_status():
-    """Henter aktuel status for ventelisten ved at tjekke HTML-indholdet.
-
-    Siden har ingen JSON-API, så vi tjekker om lukket-teksten
-    stadig findes på siden. Er den der IKKE længere, er listen sandsynligvis åben.
-    """
+def get_status():
     headers = {
-        # Nogle sider blokerer requests uden en almindelig browser User-Agent
+        # Some sites block requests without a real browser User-Agent
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
                       "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
     }
@@ -27,59 +21,58 @@ def hent_status():
     response.raise_for_status()
     html = response.text
 
-    er_lukket = LUKKET_TEKST in html
-    return not er_lukket  # True = åben, False = lukket
+    is_closed = CLOSED_TEXT in html
+    return not is_closed  # True = open, False = closed
 
 
-def hent_forrige_status():
-    """Læser sidst kendte status fra state.json, hvis den findes."""
+def get_previous_status():
     if os.path.exists(STATE_FILE):
         with open(STATE_FILE, "r") as f:
-            return json.load(f).get("er_aaben")
+            return json.load(f).get("is_open")
     return None
 
 
-def gem_status(er_aaben):
+def save_status(is_open):
     with open(STATE_FILE, "w") as f:
-        json.dump({"er_aaben": er_aaben}, f)
+        json.dump({"is_open": is_open}, f)
 
 
-def send_notifikation(besked):
+def send_notification(message):
     with open(NOTIFICATION_FILE, "w") as f:
-        f.write(besked)
-    print("Notifikation skrevet:", besked)
+        f.write(message)
+    print("Notification written:", message)
 
 
-def ryd_notifikation():
+def clear_notification():
     with open(NOTIFICATION_FILE, "w") as f:
         f.write("")
 
 
 def main():
     try:
-        nu_aaben = hent_status()
+        is_open = get_status()
     except Exception as e:
-        print("Fejl under API-kald:", e)
-        sys.exit(0)  # fejler stille, prøver igen om 10 min
+        print("Error fetching page:", e)
+        sys.exit(0)  # fail silently, retry in 10 min
 
-    forrige = hent_forrige_status()
+    previous = get_previous_status()
 
-    print(f"Forrige status: {forrige} | Nuværende status: {nu_aaben}")
+    print(f"Previous status: {previous} | Current status: {is_open}")
 
-    if forrige is None:
-        # Første kørsel — bare gem status, send ikke besked endnu
-        print("Første kørsel — gemmer status uden at sende besked.")
-        ryd_notifikation()
-    elif nu_aaben != forrige:
-        if nu_aaben:
-            send_notifikation(f"🚨 Ventelisten på Gasværksvej 12 er nu ÅBEN! {URL}")
+    if previous is None:
+        # First run — save state without sending a notification
+        print("First run — saving status without sending notification.")
+        clear_notification()
+    elif is_open != previous:
+        if is_open:
+            send_notification(f"🚨 The waitlist at Gasværksvej 12 is now OPEN! {URL}")
         else:
-            send_notifikation("Ventelisten er nu lukket igen.")
+            send_notification("The waitlist is closed again.")
     else:
-        print("Ingen ændring.")
-        ryd_notifikation()
+        print("No change.")
+        clear_notification()
 
-    gem_status(nu_aaben)
+    save_status(is_open)
 
 
 if __name__ == "__main__":
