@@ -81,6 +81,7 @@ def main():
                 f"Waitly-listen er lukket igen\n"
                 f"\nStatus ændret kl. {timestamp}\n"
                 f"\nListen \"A/B Gasværksvej 12 M FL - Ekstern venteliste\" er skiftet fra åben til lukket.\n"
+                f"\nSe listen her: {URL}\n"
                 f"\n(Dette er en automatisk besked fra dit overvågningsscript)"
             )
     else:
