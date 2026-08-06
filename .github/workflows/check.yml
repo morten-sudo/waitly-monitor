@@ -1,0 +1,37 @@
+name: Tjek venteliste-status
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'   # hver 10. minut (GitHub kan forsinke lidt under høj belastning)
+  workflow_dispatch:          # gør det muligt at køre manuelt fra GitHub UI
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Hent repo
+        uses: actions/checkout@v4
+
+      - name: Sæt Python op
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Installer afhængigheder
+        run: pip install requests twilio
+
+      - name: Kør tjek
+        env:
+          TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
+          TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
+          TWILIO_FROM_NUMBER: ${{ secrets.TWILIO_FROM_NUMBER }}
+          TWILIO_TO_NUMBER: ${{ secrets.TWILIO_TO_NUMBER }}
+        run: python monitor.py
+
+      - name: Gem opdateret status i repoet
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add state.json
+          git diff --staged --quiet || git commit -m "Opdater status [skip ci]"
+          git push
