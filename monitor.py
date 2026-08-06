@@ -2,6 +2,8 @@ import requests
 import json
 import os
 import sys
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 # The page has no JSON API — it is server-rendered HTML.
 # We check for the Danish closed-text string directly in the HTML.
@@ -40,7 +42,8 @@ def save_status(is_open):
 def send_notification(message):
     with open(NOTIFICATION_FILE, "w") as f:
         f.write(message)
-    print("Notification written:", message)
+    subject = message.split('\n', 1)[0]
+    print("Notification written:", subject)
 
 
 def clear_notification():
@@ -64,10 +67,22 @@ def main():
         print("First run — saving status without sending notification.")
         clear_notification()
     elif is_open != previous:
+        timestamp = datetime.now(ZoneInfo("Europe/Copenhagen")).strftime("%d-%m-%Y %H:%M")
         if is_open:
-            send_notification(f"🚨 The waitlist at Gasværksvej 12 is now OPEN! {URL}")
+            send_notification(
+                f"🚨 Waitly-listen er åben NU\n"
+                f"\nStatus ændret kl. {timestamp}\n"
+                f"\nListen \"A/B Gasværksvej 12 M FL - Ekstern venteliste\" er skiftet fra lukket til åben.\n"
+                f"\nTilmeld dig her: {URL}\n"
+                f"\n(Dette er en automatisk besked fra dit overvågningsscript)"
+            )
         else:
-            send_notification("The waitlist is closed again.")
+            send_notification(
+                f"Waitly-listen er lukket igen\n"
+                f"\nStatus ændret kl. {timestamp}\n"
+                f"\nListen \"A/B Gasværksvej 12 M FL - Ekstern venteliste\" er skiftet fra åben til lukket.\n"
+                f"\n(Dette er en automatisk besked fra dit overvågningsscript)"
+            )
     else:
         print("No change.")
         clear_notification()

@@ -63,10 +63,12 @@ jobs:
           pw = os.environ['GMAIL_APP_PASSWORD'].replace('\xa0', '').replace(' ', '')
 
           with open('notification.txt') as f:
-              body = f.read()
+              content = f.read()
+          subject, _, body = content.partition('\n')
+          body = body.lstrip('\n')
 
           msg = MIMEText(body, 'plain', 'utf-8')
-          msg['Subject'] = 'Waitly waitlist update'
+          msg['Subject'] = subject
           msg['From'] = addr
           msg['To'] = addr
 
