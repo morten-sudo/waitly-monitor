@@ -32,6 +32,14 @@ jobs:
             echo "send=false" >> $GITHUB_OUTPUT
           fi
 
+      - name: Læs notifikationsindhold
+        id: notif
+        if: steps.check_notification.outputs.send == 'true'
+        run: |
+          echo "content<<EOF" >> $GITHUB_OUTPUT
+          cat notification.txt >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
       - name: Send email via Gmail
         if: steps.check_notification.outputs.send == 'true'
         uses: dawidd6/action-send-mail@v3
@@ -43,7 +51,7 @@ jobs:
           subject: "Waitly venteliste opdatering"
           to: ${{ secrets.GMAIL_ADDRESS }}
           from: ${{ secrets.GMAIL_ADDRESS }}
-          body_path: notification.txt
+          body: ${{ steps.notif.outputs.content }}
 
       - name: Gem opdateret status i repoet
         run: |
