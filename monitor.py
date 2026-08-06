@@ -46,28 +46,30 @@ def send_notification(message):
     print("Notification written:", subject)
 
 
-def clear_notification():
-    with open(NOTIFICATION_FILE, "w") as f:
-        f.write("")
-
-
 def main():
     try:
         is_open = get_status()
     except Exception as e:
         print("Error fetching page:", e)
-        sys.exit(0)  # fail silently, retry in 10 min
+        sys.exit(0)  # fail silently, retry in 5 min
 
     previous = get_previous_status()
 
     print(f"Previous status: {previous} | Current status: {is_open}")
 
+    timestamp = datetime.now(ZoneInfo("Europe/Copenhagen")).strftime("%d-%m-%Y %H:%M")
+    status_str = "åben" if is_open else "lukket"
+
     if previous is None:
-        # First run — save state without sending a notification
-        print("First run — saving status without sending notification.")
-        clear_notification()
+        print("First run — sending initial status report.")
+        send_notification(
+            f"Waitly: Første kørsel — status {status_str}\n"
+            f"\nFørste kørsel registreret kl. {timestamp}\n"
+            f"\nNuværende status: Listen er {status_str}.\n"
+            f"\nSe listen her: {URL}\n"
+            f"\n(Dette er en automatisk besked fra dit overvågningsscript)"
+        )
     elif is_open != previous:
-        timestamp = datetime.now(ZoneInfo("Europe/Copenhagen")).strftime("%d-%m-%Y %H:%M")
         if is_open:
             send_notification(
                 f"🚨 Waitly-listen er åben NU\n"
@@ -86,7 +88,13 @@ def main():
             )
     else:
         print("No change.")
-        clear_notification()
+        send_notification(
+            f"Waitly: Status uændret ({status_str})\n"
+            f"\nTjekket kl. {timestamp}\n"
+            f"\nListen er fortsat {status_str}. Ingen ændringer siden sidst.\n"
+            f"\nSe listen her: {URL}\n"
+            f"\n(Dette er en automatisk besked fra dit overvågningsscript)"
+        )
 
     save_status(is_open)
 
