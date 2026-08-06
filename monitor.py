@@ -13,7 +13,7 @@ STATE_FILE = "state.json"
 
 # Twilio-oplysninger hentes fra GitHub Secrets (miljøvariabler)
 TWILIO_SID = os.environ["TWILIO_ACCOUNT_SID"]
-TWILIO_TOKEN = os.environ["TWILIO_AUTH_TOKEN"]
+TWILIO_TOKEN = os.environ["PRIMARY_AUTH_TOKEN"]
 TWILIO_FROM = os.environ["TWILIO_FROM_NUMBER"]
 TWILIO_TO = os.environ["TWILIO_TO_NUMBER"]
 
