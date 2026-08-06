@@ -32,26 +32,33 @@ jobs:
             echo "send=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Læs notifikationsindhold
-        id: notif
-        if: steps.check_notification.outputs.send == 'true'
-        run: |
-          echo "content<<EOF" >> $GITHUB_OUTPUT
-          cat notification.txt >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-
       - name: Send email via Gmail
         if: steps.check_notification.outputs.send == 'true'
-        uses: dawidd6/action-send-mail@v3
-        with:
-          server_address: smtp.gmail.com
-          server_port: 465
-          username: ${{ secrets.GMAIL_ADDRESS }}
-          password: ${{ secrets.GMAIL_APP_PASSWORD }}
-          subject: "Waitly venteliste opdatering"
-          to: ${{ secrets.GMAIL_ADDRESS }}
-          from: ${{ secrets.GMAIL_ADDRESS }}
-          body: ${{ steps.notif.outputs.content }}
+        env:
+          GMAIL_ADDRESS: ${{ secrets.GMAIL_ADDRESS }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+        run: |
+          python3 - <<'PYEOF'
+          import smtplib, os
+          from email.mime.text import MIMEText
+
+          addr = os.environ['GMAIL_ADDRESS'].strip()
+          pw = os.environ['GMAIL_APP_PASSWORD'].replace('\xa0', '').replace(' ', '')
+
+          with open('notification.txt') as f:
+              body = f.read()
+
+          msg = MIMEText(body, 'plain', 'utf-8')
+          msg['Subject'] = 'Waitly venteliste opdatering'
+          msg['From'] = addr
+          msg['To'] = addr
+
+          with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
+              smtp.login(addr, pw)
+              smtp.sendmail(addr, addr, msg.as_string())
+
+          print('Email sendt.')
+          PYEOF
 
       - name: Gem opdateret status i repoet
         if: always()
