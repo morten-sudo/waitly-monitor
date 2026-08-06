@@ -9,21 +9,38 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
+      - name: Check quiet hours
+        id: quiet_hours
+        run: |
+          HOUR=$(TZ=Europe/Copenhagen date +%H)
+          if [ "$HOUR" -ge 23 ] || [ "$HOUR" -lt 6 ]; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+            echo "Quiet hours — skipping (Copenhagen hour: $HOUR)"
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+            echo "Active hours — running (Copenhagen hour: $HOUR)"
+          fi
+
       - name: Check out repo
+        if: steps.quiet_hours.outputs.skip != 'true'
         uses: actions/checkout@v4
 
       - name: Set up Python
+        if: steps.quiet_hours.outputs.skip != 'true'
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
 
       - name: Install dependencies
+        if: steps.quiet_hours.outputs.skip != 'true'
         run: pip install requests
 
       - name: Run check
+        if: steps.quiet_hours.outputs.skip != 'true'
         run: python monitor.py
 
       - name: Check whether notification should be sent
+        if: steps.quiet_hours.outputs.skip != 'true'
         id: check_notification
         run: |
           if [ -s notification.txt ]; then
@@ -33,7 +50,7 @@ jobs:
           fi
 
       - name: Send email via Gmail
-        if: steps.check_notification.outputs.send == 'true'
+        if: steps.quiet_hours.outputs.skip != 'true' && steps.check_notification.outputs.send == 'true'
         env:
           GMAIL_ADDRESS: ${{ secrets.GMAIL_ADDRESS }}
           GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
@@ -61,7 +78,7 @@ jobs:
           PYEOF
 
       - name: Commit updated status to repo
-        if: always()
+        if: always() && steps.quiet_hours.outputs.skip != 'true'
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
