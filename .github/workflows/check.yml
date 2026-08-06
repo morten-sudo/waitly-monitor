@@ -2,7 +2,7 @@ name: Check waitlist status
 
 on:
   schedule:
-    - cron: '*/10 * * * *'   # every 10 minutes (GitHub may delay slightly under high load)
+    - cron: '*/5 * * * *'    # every 5 minutes (GitHub may delay slightly under high load)
   workflow_dispatch:          # allows manual trigger from the GitHub UI
 
 jobs:
