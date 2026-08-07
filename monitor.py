@@ -87,14 +87,9 @@ def main():
                 f"\n(Dette er en automatisk besked fra dit overvågningsscript)"
             )
     else:
-        print("No change.")
-        send_notification(
-            f"Waitly: Status uændret ({status_str})\n"
-            f"\nTjekket kl. {timestamp}\n"
-            f"\nListen er fortsat {status_str}. Ingen ændringer siden sidst.\n"
-            f"\nSe listen her: {URL}\n"
-            f"\n(Dette er en automatisk besked fra dit overvågningsscript)"
-        )
+        print("No change — no notification sent.")
+        with open(NOTIFICATION_FILE, "w") as f:
+            f.write("")
 
     save_status(is_open)
 
