@@ -77,6 +77,21 @@ jobs:
           print('Email sent.')
           PYEOF
 
+      - name: Send push notification via ntfy
+        if: steps.quiet_hours.outputs.skip != 'true' && steps.check_notification.outputs.send == 'true'
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+        run: |
+          SUBJECT=$(head -n 1 notification.txt)
+          BODY=$(tail -n +3 notification.txt)
+          curl -s \
+            -H "Title: $SUBJECT" \
+            -H "Priority: urgent" \
+            -H "Tags: rotating_light" \
+            -d "$BODY" \
+            "https://ntfy.sh/$NTFY_TOPIC"
+          echo "ntfy notification sent."
+
       - name: Commit updated status to repo
         if: always() && steps.quiet_hours.outputs.skip != 'true'
         run: |
